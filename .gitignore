@@ -4,6 +4,10 @@
 *.dll
 *.so
 *.dylib
+metric-plugin
+metric-plugin-darwin-*
+metric-plugin-linux-*
+.idea
 
 # Test binary, built with `go test -c`
 *.test
@@ -12,4 +16,4 @@
 *.out
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+vendor/

@@ -1,0 +1,74 @@
+name: continuous integration
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    paths:
+      - '**.go'
+      - go.sum
+      - go.mod
+  push:
+    paths:
+      - '**.go'
+      - go.sum
+      - go.mod
+    branches:
+      - '**'
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+
+      - name: Deps cache
+        id: cache-go-deps
+        uses: actions/cache@v4
+        env:
+          cache-name: go-deps-cache
+        with:
+          path: ~/godeps
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+
+      - if: ${{ steps.cache-go-deps.outputs.cache-hit != 'true' }}
+        name: List the state of go modules
+        continue-on-error: true
+        run: go mod graph
+
+      - name: Install dependencies
+        run: |
+          go mod tidy
+          go mod download
+
+  test:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+
+      - name: Unit test
+        run: |
+          go test ./...
+
+      - name: Build rollouts-loki-plugin
+        run: |
+          go build
